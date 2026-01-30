@@ -4,13 +4,14 @@ import { useMemo } from 'react';
 import { getBlockById } from '../data/blockPalette';
 import type { LayerEditorState } from './LayerEditor';
 import './Viewer3D.css';
+import { getBlockMaterial } from '../view/textures';
 
 type Props = {
   state: LayerEditorState;
   shadows: boolean;
 };
 
-type BlockInstance = { x: number; y: number; z: number; color: string };
+type BlockInstance = { x: number; y: number; z: number; color: string; id: string };
 
 function useInstances(state: LayerEditorState) {
   return useMemo(() => {
@@ -21,7 +22,7 @@ function useInstances(state: LayerEditorState) {
         const x = Number(xs);
         const z = Number(zs);
         const b = getBlockById(id);
-        if (id !== 'minecraft:air') out.push({ x, y, z, color: b.color });
+        if (id !== 'minecraft:air') out.push({ x, y, z, color: b.color, id });
       }
     }
     return out;
@@ -58,16 +59,16 @@ export function Viewer3D({ state, shadows }: Props) {
           shadow-mapSize-height={2048}
         />
 
-        {/* ground */}
-        <mesh rotation-x={-Math.PI / 2} position={[center.x, 0, center.z]} receiveShadow={shadows}>
-          <planeGeometry args={[256, 256]} />
+        {/* ground (shifted down so it doesn't cut blocks at y=0) */}
+        <mesh rotation-x={-Math.PI / 2} position={[center.x + 0.5, -0.5, center.z + 0.5]} receiveShadow={shadows}>
+          <planeGeometry args={[512, 512]} />
           <meshStandardMaterial color="#0f1822" />
         </mesh>
 
         {instances.map((p, idx) => (
-          <mesh key={idx} position={[p.x, p.y, p.z]} castShadow={shadows} receiveShadow={shadows}>
+          <mesh key={idx} position={[p.x + 0.5, p.y + 0.5, p.z + 0.5]} castShadow={shadows} receiveShadow={shadows}>
             <boxGeometry args={[1, 1, 1]} />
-            <meshStandardMaterial color={p.color} />
+            <primitive object={getBlockMaterial(p.id, p.color)} attach="material" />
           </mesh>
         ))}
 
