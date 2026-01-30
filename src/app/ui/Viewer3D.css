@@ -1,0 +1,12 @@
+.viewerWrap{
+  width: 100%;
+  height: calc(100vh - 120px);
+  border:1px solid rgba(34,48,68,0.9);
+  border-radius:14px;
+  overflow:hidden;
+  background: rgba(11,15,20,0.55);
+}
+
+@media (max-width: 480px){
+  .viewerWrap{height: calc(100vh - 140px);}
+}

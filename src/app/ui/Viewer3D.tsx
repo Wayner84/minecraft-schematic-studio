@@ -3,6 +3,7 @@ import { OrbitControls } from '@react-three/drei';
 import { useMemo } from 'react';
 import { getBlockById } from '../data/blockPalette';
 import type { LayerEditorState } from './LayerEditor';
+import './Viewer3D.css';
 
 type Props = {
   state: LayerEditorState;

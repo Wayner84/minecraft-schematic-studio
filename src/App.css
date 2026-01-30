@@ -72,6 +72,19 @@
   .editor{grid-template-columns: 1fr;}
 }
 
+/* Mobile UX: make the left panels collapse into a single scroll area and give the canvas more height */
+@media (max-width: 480px){
+  .main{padding:12px}
+  .topbar{padding:12px 12px}
+  .tabs{gap:8px}
+  .tab{padding:8px 10px}
+
+  .editor{gap:12px}
+  .panel{padding:12px}
+  .palette{max-height: 220px}
+  .canvasWrap{max-height: 62vh}
+}
+
 .editorLeft{display:flex; flex-direction:column; gap:14px}
 .editorRight{display:flex; flex-direction:column; gap:14px}
 
