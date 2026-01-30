@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { getBlockById } from '../data/blockPalette';
 import type { LayerEditorState } from './LayerEditor';
 
@@ -27,8 +27,26 @@ export function EditorCanvas({
   selected: string;
   onChange: React.Dispatch<React.SetStateAction<LayerEditorState>>;
 }) {
+  const wrapRef = useRef<HTMLDivElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+
+  // View transform: two-finger pinch zoom + pan
+  const [viewScale, setViewScale] = useState(1);
+  const [offset, setOffset] = useState({ x: 0, y: 0 });
+
+  const pointers = useRef(new Map<number, { x: number; y: number }>());
+  const gesture = useRef<
+    | null
+    | {
+        startDist: number;
+        startScale: number;
+        startMid: { x: number; y: number };
+        startOffset: { x: number; y: number };
+      }
+  >(null);
+
   const isPaintingRef = useRef(false);
+  const lastPaint = useRef<{ x: number; z: number } | null>(null);
 
   useEffect(() => {
     const c = canvasRef.current;
@@ -90,10 +108,14 @@ export function EditorCanvas({
     ctx.globalAlpha = 1;
   }, [state, y, cellPx]);
 
-  function canvasToCell(e: React.PointerEvent<HTMLCanvasElement>) {
-    const rect = canvasRef.current!.getBoundingClientRect();
-    const cx = e.clientX - rect.left;
-    const cz = e.clientY - rect.top;
+  function wrapToCell(clientX: number, clientY: number) {
+    const rect = wrapRef.current!.getBoundingClientRect();
+    const localX = clientX - rect.left;
+    const localY = clientY - rect.top;
+
+    // Invert transform applied to the canvas: translate(offset) then scale(viewScale)
+    const cx = (localX - offset.x) / viewScale;
+    const cz = (localY - offset.y) / viewScale;
     return { x: Math.floor(cx / cellPx), z: Math.floor(cz / cellPx) };
   }
 
@@ -114,25 +136,89 @@ export function EditorCanvas({
     });
   }
 
+  const canvasStyle = useMemo(
+    () => ({
+      transform: `translate(${offset.x}px, ${offset.y}px) scale(${viewScale})`,
+      transformOrigin: '0 0',
+    }),
+    [offset, viewScale]
+  );
+
   return (
-    <div className="canvasWrap">
-      <canvas
-        ref={canvasRef}
-        className="canvas"
-        onPointerDown={e => {
-          (e.target as HTMLCanvasElement).setPointerCapture(e.pointerId);
-          isPaintingRef.current = true;
-          const { x, z } = canvasToCell(e);
+    <div
+      ref={wrapRef}
+      className="canvasWrap canvasGestures"
+      onPointerDown={e => {
+        (e.target as HTMLElement).setPointerCapture?.(e.pointerId);
+        pointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+
+        // Two fingers => pinch/zoom/pan, do NOT paint
+        if (pointers.current.size >= 2) {
+          isPaintingRef.current = false;
+          lastPaint.current = null;
+
+          const pts = Array.from(pointers.current.values());
+          const dx = pts[0].x - pts[1].x;
+          const dy = pts[0].y - pts[1].y;
+          const dist = Math.hypot(dx, dy);
+          const mid = { x: (pts[0].x + pts[1].x) / 2, y: (pts[0].y + pts[1].y) / 2 };
+          gesture.current = { startDist: dist, startScale: viewScale, startMid: mid, startOffset: offset };
+          return;
+        }
+
+        // Single finger => paint
+        isPaintingRef.current = true;
+        const { x, z } = wrapToCell(e.clientX, e.clientY);
+        paintAt(x, z);
+        lastPaint.current = { x, z };
+      }}
+      onPointerMove={e => {
+        if (!pointers.current.has(e.pointerId)) return;
+        pointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+
+        // Pinch mode
+        if (pointers.current.size >= 2 && gesture.current) {
+          const pts = Array.from(pointers.current.values());
+          const dx = pts[0].x - pts[1].x;
+          const dy = pts[0].y - pts[1].y;
+          const dist = Math.max(1, Math.hypot(dx, dy));
+          const mid = { x: (pts[0].x + pts[1].x) / 2, y: (pts[0].y + pts[1].y) / 2 };
+
+          const scale = Math.min(6, Math.max(0.6, gesture.current.startScale * (dist / gesture.current.startDist)));
+
+          // Pan: move offset by midpoint delta in screen space
+          const dmx = mid.x - gesture.current.startMid.x;
+          const dmy = mid.y - gesture.current.startMid.y;
+          setViewScale(scale);
+          setOffset({ x: gesture.current.startOffset.x + dmx, y: gesture.current.startOffset.y + dmy });
+          return;
+        }
+
+        // Paint mode
+        if (!isPaintingRef.current) return;
+        const { x, z } = wrapToCell(e.clientX, e.clientY);
+        const prev = lastPaint.current;
+        if (!prev || prev.x !== x || prev.z !== z) {
           paintAt(x, z);
-        }}
-        onPointerMove={e => {
-          if (!isPaintingRef.current) return;
-          const { x, z } = canvasToCell(e);
-          paintAt(x, z);
-        }}
-        onPointerUp={() => { isPaintingRef.current = false; }}
-        onPointerCancel={() => { isPaintingRef.current = false; }}
-      />
+          lastPaint.current = { x, z };
+        }
+      }}
+      onPointerUp={e => {
+        pointers.current.delete(e.pointerId);
+        if (pointers.current.size < 2) {
+          gesture.current = null;
+        }
+        isPaintingRef.current = false;
+        lastPaint.current = null;
+      }}
+      onPointerCancel={e => {
+        pointers.current.delete(e.pointerId);
+        gesture.current = null;
+        isPaintingRef.current = false;
+        lastPaint.current = null;
+      }}
+    >
+      <canvas ref={canvasRef} className="canvas" style={canvasStyle as any} />
     </div>
   );
 }
