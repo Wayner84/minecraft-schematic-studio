@@ -1,53 +1,56 @@
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls } from '@react-three/drei';
 import { useMemo } from 'react';
-import { getBlockById } from '../data/blockPalette';
 import type { LayerEditorState } from './LayerEditor';
 import './Viewer3D.css';
-import { getBlockMaterial } from '../view/textures';
+import { InstancedBlocks } from './InstancedBlocks';
 
 type Props = {
   state: LayerEditorState;
   shadows: boolean;
 };
 
-type BlockInstance = { x: number; y: number; z: number; color: string; id: string };
-
-function useInstances(state: LayerEditorState) {
+function useBounds(state: LayerEditorState) {
   return useMemo(() => {
-    const out: BlockInstance[] = [];
+    let has = false;
+    let minX = Infinity, minY = Infinity, minZ = Infinity;
+    let maxX = -Infinity, maxY = -Infinity, maxZ = -Infinity;
+
     for (const [y, layer] of state.layers.entries()) {
       for (const [k, id] of layer.entries()) {
+        if (id === 'minecraft:air') continue;
         const [xs, zs] = k.split(',');
         const x = Number(xs);
         const z = Number(zs);
-        const b = getBlockById(id);
-        if (id !== 'minecraft:air') out.push({ x, y, z, color: b.color, id });
+        has = true;
+        minX = Math.min(minX, x); maxX = Math.max(maxX, x);
+        minY = Math.min(minY, y); maxY = Math.max(maxY, y);
+        minZ = Math.min(minZ, z); maxZ = Math.max(maxZ, z);
       }
     }
-    return out;
+
+    if (!has) {
+      return { center: { x: 64, y: 16, z: 64 }, radius: 40 };
+    }
+
+    const cx = (minX + maxX) / 2;
+    const cy = (minY + maxY) / 2;
+    const cz = (minZ + maxZ) / 2;
+    const dx = (maxX - minX) + 1;
+    const dy = (maxY - minY) + 1;
+    const dz = (maxZ - minZ) + 1;
+    const radius = Math.max(dx, dy, dz) * 1.2;
+
+    return { center: { x: cx, y: cy, z: cz }, radius };
   }, [state]);
 }
 
 export function Viewer3D({ state, shadows }: Props) {
-  const instances = useInstances(state);
-
-  // rough center
-  const center = useMemo(() => {
-    if (!instances.length) return { x: 64, y: 16, z: 64 };
-    let minX = Infinity, minY = Infinity, minZ = Infinity;
-    let maxX = -Infinity, maxY = -Infinity, maxZ = -Infinity;
-    for (const p of instances) {
-      minX = Math.min(minX, p.x); maxX = Math.max(maxX, p.x);
-      minY = Math.min(minY, p.y); maxY = Math.max(maxY, p.y);
-      minZ = Math.min(minZ, p.z); maxZ = Math.max(maxZ, p.z);
-    }
-    return { x: (minX + maxX) / 2, y: (minY + maxY) / 2, z: (minZ + maxZ) / 2 };
-  }, [instances]);
+  const { center, radius } = useBounds(state);
 
   return (
     <div className="viewerWrap">
-      <Canvas shadows={shadows} camera={{ position: [center.x + 40, center.y + 40, center.z + 40], fov: 50 }}>
+      <Canvas shadows={shadows} camera={{ position: [center.x + radius, center.y + radius, center.z + radius], fov: 50 }}>
         <color attach="background" args={['#0b0f14']} />
 
         <ambientLight intensity={0.6} />
@@ -65,12 +68,7 @@ export function Viewer3D({ state, shadows }: Props) {
           <meshStandardMaterial color="#0f1822" />
         </mesh>
 
-        {instances.map((p, idx) => (
-          <mesh key={idx} position={[p.x + 0.5, p.y + 0.5, p.z + 0.5]} castShadow={shadows} receiveShadow={shadows}>
-            <boxGeometry args={[1, 1, 1]} />
-            <primitive object={getBlockMaterial(p.id, p.color)} attach="material" />
-          </mesh>
-        ))}
+        <InstancedBlocks state={state} shadows={shadows} />
 
         <OrbitControls makeDefault target={[center.x, center.y, center.z]} enableDamping dampingFactor={0.08} />
       </Canvas>
