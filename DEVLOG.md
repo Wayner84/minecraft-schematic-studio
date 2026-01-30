@@ -18,6 +18,7 @@
 
 ## Next
 - Real texture atlas (Minecraft-style)
+- Texture atlas (Minecraft-style tiles)
 - Instanced rendering for large builds
 - Litematica (.litematic) import/export
 - Redstone simulation MVP (tick stepping, pistons/doors)
