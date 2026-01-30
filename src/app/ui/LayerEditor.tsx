@@ -1,5 +1,5 @@
 import { downloadJson, readJsonFile, clampY } from '../io/saveLoad';
-import type { BuildFileV0, PlacedBlock } from '../io/saveLoad';
+import type { BuildFileAny, BuildFileV0, BuildFileV1, PlacedBlock } from '../io/saveLoad';
 import { EditorCanvas } from './EditorCanvas';
 
 type CellKey = string; // "x,z"
@@ -14,7 +14,9 @@ export type LayerEditorState = {
 
 // helpers moved into EditorCanvas
 
-function exportBuild(state: LayerEditorState, name: string, heightMax: number): BuildFileV0 {
+// Legacy exporter kept for compatibility (not used by UI)
+export function exportBuildV0(state: LayerEditorState, name: string, heightMax: number): BuildFileV0 {
+  void state; void name; void heightMax;
   const blocks: PlacedBlock[] = [];
   for (const [y, layer] of state.layers.entries()) {
     if (y < 0 || y > heightMax) continue;
@@ -31,28 +33,95 @@ function exportBuild(state: LayerEditorState, name: string, heightMax: number): 
   };
 }
 
-function importBuild(file: any): LayerEditorState {
-  if (!file || typeof file !== 'object') throw new Error('Invalid file');
-  if (file.version !== 0) throw new Error('Unsupported file version');
-  const sizeX = Number(file.size?.x ?? 128);
-  const sizeZ = Number(file.size?.z ?? 128);
-  const layers = new Map<number, Map<CellKey, string>>();
+function exportBuildV1(state: LayerEditorState, name: string, heightMax: number): BuildFileV1 {
+  const palette: string[] = [];
+  const palIndex = new Map<string, number>();
+  const blocks: Array<[number, number, number, number]> = [];
 
-  const blocks: PlacedBlock[] = Array.isArray(file.blocks) ? file.blocks : [];
-  for (const b of blocks) {
-    const x = Number(b.x), z = Number(b.z);
-    const y = clampY(Number(b.y));
-    const id = String(b.id || 'minecraft:air');
-    if (x < 0 || z < 0 || x >= sizeX || z >= sizeZ) continue;
-    let layer = layers.get(y);
-    if (!layer) {
-      layer = new Map();
-      layers.set(y, layer);
+  function idx(id: string) {
+    let i = palIndex.get(id);
+    if (i == null) {
+      i = palette.length;
+      palette.push(id);
+      palIndex.set(id, i);
     }
-    if (id !== 'minecraft:air') layer.set(keyXZ(x, z), id);
+    return i;
   }
 
-  return { sizeX, sizeZ, layers };
+  for (const [y, layer] of state.layers.entries()) {
+    if (y < 0 || y > heightMax) continue;
+    for (const [k, id] of layer.entries()) {
+      const [xs, zs] = k.split(',');
+      blocks.push([Number(xs), y, Number(zs), idx(id)]);
+    }
+  }
+
+  return {
+    version: 1,
+    name,
+    createdAt: new Date().toISOString(),
+    size: { x: state.sizeX, y: heightMax + 1, z: state.sizeZ },
+    palette,
+    blocks,
+  };
+}
+
+function importBuild(file: BuildFileAny | any): LayerEditorState {
+  if (!file || typeof file !== 'object') throw new Error('Invalid file');
+
+  // v1 (palette-indexed)
+  if (file.version === 1) {
+    const f = file as BuildFileV1;
+    const sizeX = Number(f.size?.x ?? 128);
+    const sizeZ = Number(f.size?.z ?? 128);
+    const layers = new Map<number, Map<CellKey, string>>();
+
+    const palette: string[] = Array.isArray(f.palette) ? f.palette.map(String) : [];
+    const blocks: Array<[number, number, number, number]> = Array.isArray(f.blocks) ? f.blocks : [];
+
+    for (const b of blocks) {
+      const x = Number(b[0]);
+      const y = clampY(Number(b[1]));
+      const z = Number(b[2]);
+      const pi = Number(b[3]);
+      const id = palette[pi] ?? 'minecraft:air';
+      if (x < 0 || z < 0 || x >= sizeX || z >= sizeZ) continue;
+      let layer = layers.get(y);
+      if (!layer) {
+        layer = new Map();
+        layers.set(y, layer);
+      }
+      if (id !== 'minecraft:air') layer.set(keyXZ(x, z), id);
+    }
+
+    return { sizeX, sizeZ, layers };
+  }
+
+  // v0 (legacy)
+  if (file.version === 0) {
+    const f = file as BuildFileV0;
+    const sizeX = Number(f.size?.x ?? 128);
+    const sizeZ = Number(f.size?.z ?? 128);
+    const layers = new Map<number, Map<CellKey, string>>();
+
+    const blocks: PlacedBlock[] = Array.isArray(f.blocks) ? f.blocks : [];
+    for (const b of blocks) {
+      const x = Number(b.x), z = Number(b.z);
+      const y = clampY(Number(b.y));
+      const id = String(b.id || 'minecraft:air');
+      if (x < 0 || z < 0 || x >= sizeX || z >= sizeZ) continue;
+      let layer = layers.get(y);
+      if (!layer) {
+        layer = new Map();
+        layers.set(y, layer);
+      }
+      if (id !== 'minecraft:air') layer.set(keyXZ(x, z), id);
+    }
+
+    return { sizeX, sizeZ, layers };
+  }
+
+  throw new Error('Unsupported file version');
 }
 
 export function LayerEditor({
@@ -107,9 +176,9 @@ export function LayerEditor({
         <div className="row" style={{ gap: 10 }}>
           <button
             className="btn primary"
-            onClick={() => downloadJson(`build-${Date.now()}.json`, exportBuild(state, 'Untitled build', 319))}
+            onClick={() => downloadJson(`build-${Date.now()}.json`, exportBuildV1(state, 'Untitled build', 319))}
           >
-            Export
+            Export JSON
           </button>
           <label className="btn" style={{ cursor: 'pointer' }}>
             Import

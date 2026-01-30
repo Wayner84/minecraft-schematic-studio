@@ -9,6 +9,19 @@ export type BuildFileV0 = {
   blocks: PlacedBlock[]; // sparse; air omitted
 };
 
+export type BuildFileV1 = {
+  version: 1;
+  name: string;
+  createdAt: string; // ISO
+  size: { x: number; y: number; z: number };
+  // Palette of unique block ids used in the file (air omitted)
+  palette: string[];
+  // Sparse blocks stored as indices into palette: [x, y, z, paletteIndex]
+  blocks: Array<[number, number, number, number]>;
+};
+
+export type BuildFileAny = BuildFileV0 | BuildFileV1;
+
 export function downloadJson(filename: string, data: unknown) {
   const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
