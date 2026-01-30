@@ -1,34 +1,28 @@
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { LayerEditor } from './LayerEditor';
 import { Viewer3D } from './Viewer3D';
+import { PaletteBar } from './PaletteBar';
 import { createEmptyEditorState } from '../model/editorState';
-
-type Tab = 'editor' | 'viewer';
+import { DEFAULT_BLOCK_ID } from '../data/blockPalette';
 
 export function AppShell() {
-  const [tab, setTab] = useState<Tab>('editor');
   const [shadows, setShadows] = useState(true);
 
-  // Shared state between Editor and Viewer
+  // Shared state
   const [editorState, setEditorState] = useState(() => createEmptyEditorState(128, 128));
-
-  const subtitle = useMemo(() => {
-    return tab === 'editor'
-      ? '1.21.x • Litematica • Layer editor (v0)'
-      : '1.21.x • 3D orbit viewer (v0)';
-  }, [tab]);
+  const [y, setY] = useState(0);
+  const [selected, setSelected] = useState(DEFAULT_BLOCK_ID);
+  const [cellPx, setCellPx] = useState(6);
 
   return (
     <div className="app">
       <header className="topbar">
         <div className="brand">
           <div className="brandTitle">Minecraft Schematic Studio</div>
-          <div className="brandSub">{subtitle}</div>
+          <div className="brandSub">1.21.x • Litematica • Editor + Viewer (v0)</div>
         </div>
 
         <nav className="tabs">
-          <button className={tab === 'editor' ? 'tab active' : 'tab'} onClick={() => setTab('editor')}>Editor</button>
-          <button className={tab === 'viewer' ? 'tab active' : 'tab'} onClick={() => setTab('viewer')}>Viewer</button>
           <button className={shadows ? 'tab active' : 'tab'} onClick={() => setShadows(v => !v)}>
             {shadows ? 'Shadows: on' : 'Shadows: off'}
           </button>
@@ -36,13 +30,30 @@ export function AppShell() {
       </header>
 
       <main className="main">
-        {tab === 'editor' ? (
-          <LayerEditor state={editorState} onChange={setEditorState} />
-        ) : (
-          <div className="viewerPanel">
-            <Viewer3D state={editorState} shadows={shadows} />
+        <div className="splitLayout">
+          <div className="splitEditor">
+            <LayerEditor
+              state={editorState}
+              onChange={setEditorState}
+              y={y}
+              setY={setY}
+              selected={selected}
+              setSelected={setSelected}
+              cellPx={cellPx}
+              setCellPx={setCellPx}
+            />
           </div>
-        )}
+
+          <div className="splitPalette">
+            <PaletteBar selected={selected} onSelect={setSelected} />
+          </div>
+
+          <div className="splitViewer">
+            <div className="panel viewerPanel">
+              <Viewer3D state={editorState} shadows={shadows} />
+            </div>
+          </div>
+        </div>
       </main>
     </div>
   );

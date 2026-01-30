@@ -35,7 +35,7 @@
 }
 .tab.active{border-color: rgba(89,193,255,0.65); box-shadow: 0 10px 26px rgba(0,0,0,0.25)}
 
-.main{padding:18px; flex:1}
+.main{padding:18px; flex:1; min-height:0}
 
 .panel{
   border:1px solid rgba(34,48,68,0.9);
@@ -67,29 +67,49 @@
   color: var(--text);
 }
 
-.editor{display:grid; grid-template-columns: 420px 1fr; gap:16px; align-items:start}
+.splitLayout{
+  display:grid;
+  grid-template-columns: minmax(320px, 520px) 320px 1fr;
+  gap: 16px;
+  align-items: stretch;
+  height: calc(100vh - 110px);
+}
+.splitEditor, .splitPalette, .splitViewer{min-height:0}
+.viewerPanel{height:100%; min-height:0; padding:0}
+
+/* Mobile: grid on top, palette in the middle, 3D viewer at the bottom */
 @media (max-width: 980px){
-  .editor{grid-template-columns: 1fr;}
+  .splitLayout{
+    grid-template-columns: 1fr;
+    grid-template-rows: auto auto 55vh;
+    height: auto;
+  }
+  .viewerPanel{height:55vh}
 }
 
-/* Mobile UX: make the left panels collapse into a single scroll area and give the canvas more height */
 @media (max-width: 480px){
   .main{padding:12px}
   .topbar{padding:12px 12px}
   .tabs{gap:8px}
   .tab{padding:8px 10px}
-
-  .editor{gap:12px}
   .panel{padding:12px}
-  .palette{max-height: 220px}
-  .canvasWrap{max-height: 62vh}
+  .viewerPanel{height:48vh}
 }
 
-.editorLeft{display:flex; flex-direction:column; gap:14px}
-.editorRight{display:flex; flex-direction:column; gap:14px}
+.editorPane{display:flex; flex-direction:column; gap:12px}
 
-.palette{display:grid; grid-template-columns: 1fr; gap:8px; margin-top:10px; max-height: 340px; overflow:auto; padding-right:4px}
-.paletteItem{
+.swatch{width:18px; height:18px; border-radius:6px; border:1px solid rgba(255,255,255,0.12)}
+
+.paletteBar{height:100%; display:flex; flex-direction:column; gap:10px; min-height:0}
+.paletteButtons{
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+  overflow:auto;
+  min-height:0;
+  padding-right:4px;
+}
+.paletteBtn{
   display:flex; gap:10px; align-items:center;
   border:1px solid rgba(34,48,68,0.9);
   background: rgba(11,15,20,0.35);
@@ -98,15 +118,22 @@
   color: var(--text);
   text-align:left;
 }
-.paletteItem.active{border-color: rgba(89,193,255,0.65)}
-.swatch{width:18px; height:18px; border-radius:6px; border:1px solid rgba(255,255,255,0.12)}
-.paletteText{font-size:14px}
+.paletteBtn.active{border-color: rgba(89,193,255,0.65)}
+.paletteBtnText{font-size:14px}
+
+@media (max-width: 980px){
+  .paletteButtons{flex-direction:row; flex-wrap:nowrap; overflow-x:auto; overflow-y:hidden}
+  .paletteBtn{min-width: 160px}
+}
 
 .canvasWrap{
   border:1px solid rgba(34,48,68,0.9);
   border-radius: var(--radius);
   background: rgba(11,15,20,0.55);
   overflow:auto;
-  max-height: 70vh;
+  max-height: 60vh;
+}
+@media (max-width: 980px){
+  .canvasWrap{max-height: 48vh}
 }
 .canvas{touch-action:none; display:block}
