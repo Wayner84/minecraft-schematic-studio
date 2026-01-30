@@ -1,7 +1,7 @@
-import { useState } from 'react';
+﻿import { useState } from 'react';
 import { LayerEditor } from './LayerEditor';
 import { Viewer3D } from './Viewer3D';
-import { PaletteBar } from './PaletteBar';
+import { FloatingPalette } from './FloatingPalette';
 import { createEmptyEditorState } from '../model/editorState';
 import { DEFAULT_BLOCK_ID } from '../data/blockPalette';
 
@@ -19,7 +19,7 @@ export function AppShell() {
       <header className="topbar">
         <div className="brand">
           <div className="brandTitle">Minecraft Schematic Studio</div>
-          <div className="brandSub">1.21.x • Litematica • Editor + Viewer (v0)</div>
+          <div className="brandSub">1.21.x â€¢ Litematica â€¢ Editor + Viewer (v0)</div>
         </div>
 
         <nav className="tabs">
@@ -44,17 +44,16 @@ export function AppShell() {
             />
           </div>
 
-          <div className="splitPalette">
-            <PaletteBar selected={selected} onSelect={setSelected} />
-          </div>
-
           <div className="splitViewer">
             <div className="panel viewerPanel">
               <Viewer3D state={editorState} shadows={shadows} />
             </div>
           </div>
+
+          <FloatingPalette selected={selected} onSelect={setSelected} />
         </div>
       </main>
     </div>
   );
 }
+
