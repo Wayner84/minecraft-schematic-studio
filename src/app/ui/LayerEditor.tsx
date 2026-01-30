@@ -65,18 +65,12 @@ function importBuild(file: any): LayerEditorState {
   return { sizeX, sizeZ, layers };
 }
 
-export function LayerEditor() {
-  const [sizeX] = useState(128);
-  const [sizeZ] = useState(128);
+export function LayerEditor({ state, onChange }: { state: LayerEditorState; onChange: React.Dispatch<React.SetStateAction<LayerEditorState>> }) {
   const [y, setY] = useState(0);
   const [selected, setSelected] = useState(DEFAULT_BLOCK_ID);
   const [query, setQuery] = useState('');
 
-  const [state, setState] = useState<LayerEditorState>(() => ({
-    sizeX,
-    sizeZ,
-    layers: new Map(),
-  }));
+  // state is lifted to AppShell so Viewer can render it
 
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const [cellPx, setCellPx] = useState(6); // zoom level
@@ -164,7 +158,7 @@ export function LayerEditor() {
 
   function paintAt(x: number, z: number) {
     if (x < 0 || z < 0 || x >= state.sizeX || z >= state.sizeZ) return;
-    setState(prev => {
+    onChange((prev) => {
       const next: LayerEditorState = {
         sizeX: prev.sizeX,
         sizeZ: prev.sizeZ,
@@ -182,7 +176,7 @@ export function LayerEditor() {
   async function onImportFile(file: File) {
     const json = await readJsonFile(file);
     const next = importBuild(json);
-    setState(next);
+    onChange(next);
     setY(0);
   }
 
