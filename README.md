@@ -1,9 +1,12 @@
 # Minecraft Schematic Studio
 
+Live (GitHub Pages): https://wayner84.github.io/minecraft-schematic-studio/
+
 Web-based Minecraft build viewer/editor:
 - 3D orbit view (Three.js)
 - Layer-by-layer editor with ghost layer below
-- Import/export: **Litematica (.litematic)**
+- Floating draggable palette (opens full palette modal)
+- Import/export: **Litematica (.litematic)** (planned)
 - Target: **Minecraft 1.21.x**
 - Long-term: redstone simulation (tick stepper) + pistons/doors
 
@@ -13,11 +16,16 @@ npm install
 npm run dev
 ```
 
-## Roadmap (initial)
-- [ ] Core voxel/chunk world model (chunked, height 0..319)
-- [ ] Layer editor (paint blocks, ghost layer)
-- [ ] 3D viewer (orbit, zoom, toggle shadows/fullbright)
-- [ ] Texture atlas pipeline (start with a small subset)
-- [ ] Litematica import/export (regions + palette + blockstates)
-- [ ] Redstone simulation MVP (dust, torches, repeaters, comparators, pistons)
+## Status
+- ✅ Layer editor v0 (paint grid + ghost layer)
+- ✅ 3D orbit viewer v0 (shadows toggle)
+- ✅ Pinch zoom + pan on grid (touch)
+- ✅ PWA-ready (Add to Home Screen)
+- ✅ JSON import/export v0 (share by file)
+
+## Roadmap (next)
+- [ ] Real texture atlas (Minecraft-style)
+- [ ] Instanced rendering for performance
+- [ ] Litematica import/export (.litematic)
+- [ ] Redstone simulation (tick stepper, pistons/doors)
 
