@@ -2,6 +2,7 @@ import { useLayoutEffect, useMemo, useRef } from 'react';
 import * as THREE from 'three';
 import { getBlockById } from '../data/blockPalette';
 import { getBlockMaterial } from '../view/textures';
+import { getBlockGeometry } from '../view/blockGeometry';
 import type { LayerEditorState } from './LayerEditor';
 
 type Group = { id: string; color: string; positions: Array<[number, number, number]> };
@@ -29,27 +30,26 @@ function buildGroups(state: LayerEditorState): Group[] {
 
 export function InstancedBlocks({ state, shadows }: { state: LayerEditorState; shadows: boolean }) {
   const groups = useMemo(() => buildGroups(state), [state]);
-  const geom = useMemo(() => new THREE.BoxGeometry(1, 1, 1), []);
-
+  // Geometry is per block-type now (per-face UVs into the atlas)
   return (
     <>
       {groups.map((g) => (
-        <InstancedGroup key={g.id} group={g} geom={geom} shadows={shadows} />
+        <InstancedGroup key={g.id} group={g} shadows={shadows} />
       ))}
     </>
   );
 }
 
+
 function InstancedGroup({
   group,
-  geom,
   shadows,
 }: {
   group: Group;
-  geom: THREE.BoxGeometry;
   shadows: boolean;
 }) {
   const ref = useRef<THREE.InstancedMesh>(null!);
+  const geom = useMemo(() => getBlockGeometry(group.id), [group.id]);
   const mat = useMemo(() => getBlockMaterial(group.id, group.color), [group.id, group.color]);
 
   useLayoutEffect(() => {
