@@ -14,6 +14,8 @@
 - Pinch-zoom + pan on the 2D grid (touch)
 - Desktop layout updated to 50/50 split (grid left, viewer right)
 - Added draggable floating Palette button + full palette modal
+- Added JSON build format v1 (palette-indexed)
+- Added Litematica (.litematic) import/export v0 (single region, blocks only)
 - GitHub Pages deployment configured
 
 ## Next

@@ -21,7 +21,8 @@ npm run dev
 - ✅ 3D orbit viewer v0 (shadows toggle)
 - ✅ Pinch zoom + pan on grid (touch)
 - ✅ PWA-ready (Add to Home Screen)
-- ✅ JSON import/export v0 (share by file)
+- ✅ JSON import/export v1 (palette-indexed, share by file)
+- ✅ Litematica (.litematic) import/export v0 (single region, blocks only)
 
 ## Roadmap (next)
 - [ ] Real texture atlas (Minecraft-style)

@@ -1,4 +1,5 @@
-import { downloadJson, readJsonFile, clampY } from '../io/saveLoad';
+import { downloadBlob, downloadJson, readJsonFile, clampY } from '../io/saveLoad';
+import { exportLitematic, importLitematic } from '../io/litematic';
 import type { BuildFileAny, BuildFileV0, BuildFileV1, PlacedBlock } from '../io/saveLoad';
 import { EditorCanvas } from './EditorCanvas';
 
@@ -143,9 +144,15 @@ export function LayerEditor({
   cellPx: number;
   setCellPx: (n: number) => void;
 }) {
-  async function onImportFile(file: File) {
+  async function onImportJsonFile(file: File) {
     const json = await readJsonFile(file);
     const next = importBuild(json);
+    onChange(next);
+    setY(0);
+  }
+
+  async function onImportLitematicFile(file: File) {
+    const next = await importLitematic(file);
     onChange(next);
     setY(0);
   }
@@ -180,15 +187,39 @@ export function LayerEditor({
           >
             Export JSON
           </button>
+
+          <button
+            className="btn"
+            onClick={async () => {
+              const blob = await exportLitematic(state, 'Untitled build');
+              downloadBlob(`build-${Date.now()}.litematic`, blob);
+            }}
+          >
+            Export .litematic
+          </button>
+
           <label className="btn" style={{ cursor: 'pointer' }}>
-            Import
+            Import JSON
             <input
               type="file"
               accept="application/json"
               style={{ display: 'none' }}
               onChange={e => {
                 const f = e.target.files?.[0];
-                if (f) void onImportFile(f);
+                if (f) void onImportJsonFile(f);
+              }}
+            />
+          </label>
+
+          <label className="btn" style={{ cursor: 'pointer' }}>
+            Import .litematic
+            <input
+              type="file"
+              accept=".litematic,application/octet-stream"
+              style={{ display: 'none' }}
+              onChange={e => {
+                const f = e.target.files?.[0];
+                if (f) void onImportLitematicFile(f);
               }}
             />
           </label>
