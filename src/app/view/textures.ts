@@ -12,7 +12,8 @@ let seenAtlasSource: string | null = null;
 
 function baseMat(opts: Partial<THREE.MeshStandardMaterialParameters> = {}) {
   return new THREE.MeshStandardMaterial({
-    roughness: 0.92,
+    // Slightly less rough so directional lights read a bit better (especially on mobile).
+    roughness: 0.85,
     metalness: 0.02,
     color: new THREE.Color(0xffffff),
     ...opts,
