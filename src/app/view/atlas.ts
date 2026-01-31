@@ -129,6 +129,8 @@ function createAtlas(): Atlas {
   tex.wrapS = THREE.ClampToEdgeWrapping;
   tex.wrapT = THREE.ClampToEdgeWrapping;
   tex.colorSpace = THREE.SRGBColorSpace;
+  // Our UVs are authored in "canvas space" (v=0 at top). Disable flip.
+  tex.flipY = false;
 
   return { texture: tex, tileSize, cols, map };
 }
@@ -139,6 +141,8 @@ function applyTextureDefaults(tex: THREE.Texture) {
   tex.wrapS = THREE.ClampToEdgeWrapping;
   tex.wrapT = THREE.ClampToEdgeWrapping;
   tex.colorSpace = THREE.SRGBColorSpace;
+  // We generate UVs assuming v=0 is the top of the atlas canvas.
+  tex.flipY = false;
 }
 
 async function drawTileFromPack(ctx: CanvasRenderingContext2D, map: PackPngMap, x0: number, y0: number, size: number, pngPath: string) {
