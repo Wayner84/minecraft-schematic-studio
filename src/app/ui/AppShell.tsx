@@ -1,11 +1,11 @@
-﻿import { useState } from 'react';
+﻿import { useMemo, useState } from 'react';
 import { LayerEditor } from './LayerEditor';
 import { Viewer3D } from './Viewer3D';
 import { FloatingPalette } from './FloatingPalette';
 import { HotbarPalette } from './HotbarPalette';
 import { createEmptyEditorState } from '../model/editorState';
 import { DEFAULT_BLOCK_ID } from '../data/blockPalette';
-import { getAtlasSource, loadResourcePackZip, resetAtlasToProcedural } from '../view/atlas';
+import { getAtlasStatus, loadResourcePackZip, resetAtlasToProcedural, type AtlasStatus } from '../view/atlas';
 
 export function AppShell() {
   const [shadows, setShadows] = useState(true);
@@ -16,8 +16,41 @@ export function AppShell() {
   const [selected, setSelected] = useState(DEFAULT_BLOCK_ID);
   const [cellPx, setCellPx] = useState(6);
 
+  // Texture pack UI state (kept in React so labels update immediately)
+  const [atlasStatus, setAtlasStatus] = useState<AtlasStatus>(() => getAtlasStatus());
+  const [toast, setToast] = useState<string | null>(null);
+
+  const textureLabel = useMemo(() => {
+    if (atlasStatus.source === 'resource-pack') return 'Textures: pack';
+    return 'Textures: demo';
+  }, [atlasStatus.source]);
+
   return (
-    <div className="app">
+    <div
+      className="app"
+      onDragOver={e => {
+        e.preventDefault();
+      }}
+      onDrop={async e => {
+        e.preventDefault();
+        const f = e.dataTransfer?.files?.[0];
+        if (!f) return;
+        if (!f.name.toLowerCase().endsWith('.zip')) {
+          setToast('Drop a resource pack .zip file');
+          setTimeout(() => setToast(null), 2200);
+          return;
+        }
+        try {
+          const st = await loadResourcePackZip(f);
+          setAtlasStatus(st);
+          setToast(`Loaded pack: ${f.name}`);
+          setTimeout(() => setToast(null), 2500);
+        } catch {
+          setToast('Failed to load pack (is it a valid resource pack zip?)');
+          setTimeout(() => setToast(null), 2800);
+        }
+      }}
+    >
       <header className="topbar">
         <div className="brand">
           <div className="brandTitle">Minecraft Schematic Studio</div>
@@ -30,7 +63,7 @@ export function AppShell() {
           </button>
 
           <label className="tab" style={{ cursor: 'pointer' }}>
-            Textures: {getAtlasSource() === 'resource-pack' ? 'pack' : 'demo'}
+            {textureLabel}
             <input
               type="file"
               accept=".zip,application/zip"
@@ -38,17 +71,29 @@ export function AppShell() {
               onChange={async e => {
                 const f = e.target.files?.[0];
                 if (!f) return;
-                await loadResourcePackZip(f);
+                const st = await loadResourcePackZip(f);
+                setAtlasStatus(st);
+                setToast(`Loaded pack: ${f.name}`);
+                setTimeout(() => setToast(null), 2500);
                 // reset input so selecting the same file again re-triggers
                 e.currentTarget.value = '';
               }}
             />
           </label>
 
-          <button className="tab" onClick={() => resetAtlasToProcedural()}>
+          <button
+            className="tab"
+            onClick={() => {
+              const st = resetAtlasToProcedural();
+              setAtlasStatus(st);
+              setToast('Reset to demo textures');
+              setTimeout(() => setToast(null), 2000);
+            }}
+          >
             Reset textures
           </button>
         </nav>
+        {toast && <div className="toast">{toast}</div>}
       </header>
 
       <main className="main">

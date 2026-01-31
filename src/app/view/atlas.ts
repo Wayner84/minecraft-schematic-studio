@@ -169,7 +169,13 @@ export function getPackVersion() {
   return packVersion;
 }
 
-export async function loadResourcePackZip(file: File) {
+export type AtlasStatus = { source: 'procedural' | 'resource-pack'; packVersion: number };
+
+export function getAtlasStatus(): AtlasStatus {
+  return { source: atlasSource, packVersion };
+}
+
+export async function loadResourcePackZip(file: File): Promise<AtlasStatus> {
   const pack = await readResourcePackZip(file);
   currentPack = pack;
   packVersion++;
@@ -207,11 +213,13 @@ export async function loadResourcePackZip(file: File) {
   applyTextureDefaults(atlasNow.texture);
   atlasNow.texture.needsUpdate = true;
   atlasSource = 'resource-pack';
+  return getAtlasStatus();
 }
 
-export function resetAtlasToProcedural() {
+export function resetAtlasToProcedural(): AtlasStatus {
   atlas = createAtlas();
   atlasSource = 'procedural';
+  return getAtlasStatus();
 }
 
 export function getAtlasSource() {
