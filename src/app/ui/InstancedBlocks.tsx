@@ -69,6 +69,7 @@ function InstancedGroup({
       args={[geom, mat, group.positions.length]}
       castShadow={shadows}
       receiveShadow={shadows}
+      frustumCulled={false}
     />
   );
 }

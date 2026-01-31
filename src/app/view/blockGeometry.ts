@@ -1,44 +1,45 @@
 import * as THREE from 'three';
 import { getTileUV, tilesForBlock, type TileId } from './atlas';
 
-// Build a BoxGeometry with UVs mapped to our atlas per-face.
-// BoxGeometry has 6 faces (2 triangles each) with 4 UVs per face.
+// BoxGeometry with per-face UVs into our atlas.
+// This works for both procedural textures and resource-pack textures (atlas rebuilt from pack).
 
 const cache = new Map<string, THREE.BoxGeometry>();
 
-function applyFaceUV(uv: THREE.BufferAttribute, faceIndex: number, tile: TileId) {
+function setFaceUV(g: THREE.BoxGeometry, faceIndex: number, tile: TileId) {
+  // BoxGeometry uv attribute has 24 verts (4 per face) => 48 floats.
+  // Face order: +x, -x, +y, -y, +z, -z
+  const uvAttr = g.getAttribute('uv') as THREE.BufferAttribute;
+  const a = uvAttr.array as unknown as number[];
   const { u0, v0, u1, v1 } = getTileUV(tile);
 
-  // Each face has 4 vertices => 8 floats in uv attribute.
-  const i = faceIndex * 4;
+  const i = faceIndex * 8;
+  // Default BoxGeometry UV layout per face: (0,1),(1,1),(0,0),(1,0)
+  a[i + 0] = u0;
+  a[i + 1] = v1;
+  a[i + 2] = u1;
+  a[i + 3] = v1;
+  a[i + 4] = u0;
+  a[i + 5] = v0;
+  a[i + 6] = u1;
+  a[i + 7] = v0;
 
-  // Note: three.js V axis is bottom->top in UV space, but our atlas helper returns v0..v1
-  // consistent for CanvasTexture; this mapping gives a stable orientation.
-  uv.setXY(i + 0, u0, v1);
-  uv.setXY(i + 1, u1, v1);
-  uv.setXY(i + 2, u0, v0);
-  uv.setXY(i + 3, u1, v0);
+  uvAttr.needsUpdate = true;
 }
 
 export function getBlockGeometry(blockId: string) {
-  const key = blockId;
-  const cached = cache.get(key);
+  const cached = cache.get(blockId);
   if (cached) return cached;
 
   const g = new THREE.BoxGeometry(1, 1, 1);
-  const uv = g.attributes.uv as THREE.BufferAttribute;
+  const t = tilesForBlock(blockId);
 
-  const tiles = tilesForBlock(blockId);
+  // +x, -x, +z, -z are sides
+  for (const face of [0, 1, 4, 5]) setFaceUV(g, face, t.side);
+  // +y is top, -y is bottom
+  setFaceUV(g, 2, t.top);
+  setFaceUV(g, 3, t.bottom);
 
-  // BoxGeometry face order: +x, -x, +y, -y, +z, -z
-  applyFaceUV(uv, 0, tiles.side);
-  applyFaceUV(uv, 1, tiles.side);
-  applyFaceUV(uv, 2, tiles.top);
-  applyFaceUV(uv, 3, tiles.bottom);
-  applyFaceUV(uv, 4, tiles.side);
-  applyFaceUV(uv, 5, tiles.side);
-
-  uv.needsUpdate = true;
-  cache.set(key, g);
+  cache.set(blockId, g);
   return g;
 }

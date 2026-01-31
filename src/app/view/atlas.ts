@@ -1,8 +1,9 @@
 import * as THREE from 'three';
+import { findPng, pngToBitmap, readResourcePackZip, type PackPngMap } from './resourcePack';
 
-// A lightweight, self-contained texture atlas.
-// This is NOT Mojang/Minecraft artwork — it's procedural "Minecraft-style" tiles.
-// Later: swap this for a user-supplied/resource-pack atlas.
+// Texture atlas.
+// Default is procedural, but you can swap in a user-supplied Minecraft resource pack (zip)
+// to use real block textures.
 
 export type TileId =
   | 'grass_top'
@@ -25,6 +26,7 @@ type Atlas = {
 };
 
 let atlas: Atlas | null = null;
+let atlasSource: 'procedural' | 'resource-pack' = 'procedural';
 
 function noiseTile(ctx: CanvasRenderingContext2D, x0: number, y0: number, size: number, base: string, accent: string) {
   ctx.fillStyle = base;
@@ -86,6 +88,7 @@ function createAtlas(): Atlas {
     glass: { col: 2, row: 1 },
   };
 
+  // Procedural fallback atlas
   // Row 0
   noiseTile(ctx, 0 * tileSize, 0, tileSize, '#3f7f3b', '#2a5b29'); // grass_top
   // grass_side: green top edge + dirt body
@@ -128,6 +131,87 @@ function createAtlas(): Atlas {
   tex.colorSpace = THREE.SRGBColorSpace;
 
   return { texture: tex, tileSize, cols, map };
+}
+
+function applyTextureDefaults(tex: THREE.Texture) {
+  tex.magFilter = THREE.NearestFilter;
+  tex.minFilter = THREE.NearestFilter;
+  tex.wrapS = THREE.ClampToEdgeWrapping;
+  tex.wrapT = THREE.ClampToEdgeWrapping;
+  tex.colorSpace = THREE.SRGBColorSpace;
+}
+
+async function drawTileFromPack(ctx: CanvasRenderingContext2D, map: PackPngMap, x0: number, y0: number, size: number, pngPath: string) {
+  const bytes = findPng(map, pngPath);
+  if (!bytes) return false;
+  const bmp = await pngToBitmap(bytes);
+  ctx.imageSmoothingEnabled = false;
+  ctx.drawImage(bmp, x0, y0, size, size);
+  return true;
+}
+
+/**
+ * Load a user-provided resource pack (.zip) and rebuild the atlas.
+ * Only a small subset of blocks is supported for now (the ones in our palette).
+ */
+let currentPack: PackPngMap | null = null;
+let packVersion = 0;
+
+export function getResourcePack() {
+  return currentPack;
+}
+
+export function getPackVersion() {
+  return packVersion;
+}
+
+export async function loadResourcePackZip(file: File) {
+  const pack = await readResourcePackZip(file);
+  currentPack = pack;
+  packVersion++;
+  const a = getAtlas();
+
+  // We rebuild the underlying canvas by drawing over the existing one.
+  const tex = a.texture;
+  if (!(tex instanceof THREE.CanvasTexture) || !(tex.image instanceof HTMLCanvasElement)) {
+    // If something changed, reset to a fresh procedural atlas then continue.
+    atlas = createAtlas();
+  }
+
+  const atlasNow = getAtlas();
+  const canvas = (atlasNow.texture as THREE.CanvasTexture).image as HTMLCanvasElement;
+  const ctx = canvas.getContext('2d')!;
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  const ts = atlasNow.tileSize;
+
+  // Note: modern packs store textures as individual PNGs.
+  // These are vanilla-ish paths; packs may override them.
+  await drawTileFromPack(ctx, pack, 0 * ts, 0 * ts, ts, 'assets/minecraft/textures/block/grass_block_top.png');
+  await drawTileFromPack(ctx, pack, 1 * ts, 0 * ts, ts, 'assets/minecraft/textures/block/grass_block_side.png');
+  await drawTileFromPack(ctx, pack, 2 * ts, 0 * ts, ts, 'assets/minecraft/textures/block/dirt.png');
+  await drawTileFromPack(ctx, pack, 3 * ts, 0 * ts, ts, 'assets/minecraft/textures/block/stone.png');
+  await drawTileFromPack(ctx, pack, 4 * ts, 0 * ts, ts, 'assets/minecraft/textures/block/cobblestone.png');
+  await drawTileFromPack(ctx, pack, 5 * ts, 0 * ts, ts, 'assets/minecraft/textures/block/deepslate.png');
+  await drawTileFromPack(ctx, pack, 6 * ts, 0 * ts, ts, 'assets/minecraft/textures/block/oak_planks.png');
+  await drawTileFromPack(ctx, pack, 7 * ts, 0 * ts, ts, 'assets/minecraft/textures/block/sand.png');
+
+  await drawTileFromPack(ctx, pack, 0 * ts, 1 * ts, ts, 'assets/minecraft/textures/block/oak_log.png');
+  await drawTileFromPack(ctx, pack, 1 * ts, 1 * ts, ts, 'assets/minecraft/textures/block/oak_log_top.png');
+  await drawTileFromPack(ctx, pack, 2 * ts, 1 * ts, ts, 'assets/minecraft/textures/block/glass.png');
+
+  applyTextureDefaults(atlasNow.texture);
+  atlasNow.texture.needsUpdate = true;
+  atlasSource = 'resource-pack';
+}
+
+export function resetAtlasToProcedural() {
+  atlas = createAtlas();
+  atlasSource = 'procedural';
+}
+
+export function getAtlasSource() {
+  return atlasSource;
 }
 
 function getAtlas(): Atlas {
