@@ -14,7 +14,11 @@ export function AppShell() {
   const [editorState, setEditorState] = useState(() => createEmptyEditorState(128, 128));
   const [y, setY] = useState(0);
   const [selected, setSelected] = useState(DEFAULT_BLOCK_ID);
-  const [cellPx, setCellPx] = useState(6);
+  const [cellPx, setCellPx] = useState(() => {
+    // Start a touch-friendly zoom by default on mobile.
+    if (typeof window !== 'undefined' && window.matchMedia?.('(max-width: 980px)').matches) return 9;
+    return 6;
+  });
 
   // Texture pack UI state (kept in React so labels update immediately)
   const [atlasStatus, setAtlasStatus] = useState<AtlasStatus>(() => getAtlasStatus());

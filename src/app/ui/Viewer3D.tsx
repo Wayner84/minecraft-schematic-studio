@@ -50,7 +50,10 @@ export function Viewer3D({ state, shadows }: Props) {
 
   return (
     <div className="viewerWrap">
-      <Canvas shadows={shadows} camera={{ position: [center.x + radius, center.y + radius, center.z + radius], fov: 50 }}>
+      <Canvas
+        shadows={shadows}
+        camera={{ position: [center.x + radius * 0.85, center.y + radius * 0.85, center.z + radius * 0.85], fov: 50 }}
+      >
         <color attach="background" args={['#0b0f14']} />
 
         <ambientLight intensity={0.6} />

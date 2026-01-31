@@ -109,9 +109,12 @@ export function EditorCanvas({
   }, [state, y, cellPx]);
 
   function wrapToCell(clientX: number, clientY: number) {
-    const rect = wrapRef.current!.getBoundingClientRect();
-    const localX = clientX - rect.left;
-    const localY = clientY - rect.top;
+    const wrap = wrapRef.current!;
+    const rect = wrap.getBoundingClientRect();
+    // Account for scroll position inside the wrapper. Without this, hit-testing is wrong
+    // after zooming/panning when the wrapper scrolls.
+    const localX = clientX - rect.left + wrap.scrollLeft;
+    const localY = clientY - rect.top + wrap.scrollTop;
 
     // Invert transform applied to the canvas: translate(offset) then scale(viewScale)
     const cx = (localX - offset.x) / viewScale;
