@@ -1,16 +1,30 @@
 ﻿import { useMemo, useState } from 'react';
-import { LayerEditor } from './LayerEditor';
+import { LayerEditor, exportBuildV1, importBuild } from './LayerEditor';
 import { Viewer3D } from './Viewer3D';
 import { HotbarPalette } from './HotbarPalette';
 import { createEmptyEditorState } from '../model/editorState';
 import { DEFAULT_BLOCK_ID } from '../data/blockPalette';
 import { getAtlasStatus, loadResourcePackZip, resetAtlasToProcedural, type AtlasStatus } from '../view/atlas';
+import { downloadBlob, downloadJson, readJsonFile } from '../io/saveLoad';
+import { exportLitematic, importLitematic } from '../io/litematic';
+import type { LayerEditorState } from './LayerEditor';
+
+function cloneEditorState(s: LayerEditorState): LayerEditorState {
+  const layers = new Map<number, Map<string, string>>();
+  for (const [y, layer] of s.layers.entries()) {
+    layers.set(y, new Map(layer));
+  }
+  return { sizeX: s.sizeX, sizeZ: s.sizeZ, layers };
+}
 
 export function AppShell() {
   const [shadows, setShadows] = useState(true);
 
   // Shared state
   const [editorState, setEditorState] = useState(() => createEmptyEditorState(128, 128));
+  const [historyPast, setHistoryPast] = useState<LayerEditorState[]>([]);
+  const [historyFuture, setHistoryFuture] = useState<LayerEditorState[]>([]);
+
   const [y, setY] = useState(0);
   const [selected, setSelected] = useState(DEFAULT_BLOCK_ID);
   const [cellPx, setCellPx] = useState(() => {
@@ -28,6 +42,49 @@ export function AppShell() {
     if (atlasStatus.source === 'resource-pack') return 'Textures: pack';
     return 'Textures: demo';
   }, [atlasStatus.source]);
+
+  function pushHistory(next: LayerEditorState) {
+    setHistoryPast(prev => {
+      const copy = prev.slice();
+      copy.push(cloneEditorState(editorState));
+      // cap at 50 steps
+      while (copy.length > 50) copy.shift();
+      return copy;
+    });
+    setHistoryFuture([]);
+    setEditorState(next);
+  }
+
+  function undo() {
+    setHistoryPast(prevPast => {
+      if (prevPast.length === 0) return prevPast;
+      const copy = prevPast.slice();
+      const prevState = copy.pop()!;
+      setHistoryFuture(f => {
+        const nf = f.slice();
+        nf.unshift(cloneEditorState(editorState));
+        return nf.slice(0, 50);
+      });
+      setEditorState(prevState);
+      return copy;
+    });
+  }
+
+  function redo() {
+    setHistoryFuture(prevFuture => {
+      if (prevFuture.length === 0) return prevFuture;
+      const copy = prevFuture.slice();
+      const nextState = copy.shift()!;
+      setHistoryPast(p => {
+        const np = p.slice();
+        np.push(cloneEditorState(editorState));
+        while (np.length > 50) np.shift();
+        return np;
+      });
+      setEditorState(nextState);
+      return copy;
+    });
+  }
 
   return (
     <div
@@ -162,6 +219,90 @@ export function AppShell() {
                 </button>
               </div>
 
+              <div className="row" style={{ gap: 10, flexWrap: 'wrap' }}>
+                <button
+                  className={historyPast.length ? 'btn primary' : 'btn'}
+                  onClick={() => {
+                    undo();
+                    setMenuOpen(false);
+                  }}
+                  disabled={!historyPast.length}
+                >
+                  Undo
+                </button>
+
+                <button
+                  className={historyFuture.length ? 'btn primary' : 'btn'}
+                  onClick={() => {
+                    redo();
+                    setMenuOpen(false);
+                  }}
+                  disabled={!historyFuture.length}
+                >
+                  Redo
+                </button>
+              </div>
+
+              <div className="row" style={{ gap: 10, flexWrap: 'wrap' }}>
+                <button
+                  className="btn primary"
+                  onClick={() => {
+                    downloadJson(`build-${Date.now()}.json`, exportBuildV1(editorState, 'Untitled build', 319));
+                    setMenuOpen(false);
+                  }}
+                >
+                  Export JSON
+                </button>
+
+                <button
+                  className="btn"
+                  onClick={async () => {
+                    const blob = await exportLitematic(editorState, 'Untitled build');
+                    downloadBlob(`build-${Date.now()}.litematic`, blob);
+                    setMenuOpen(false);
+                  }}
+                >
+                  Export .litematic
+                </button>
+
+                <label className="btn" style={{ cursor: 'pointer' }}>
+                  Import JSON
+                  <input
+                    type="file"
+                    accept="application/json"
+                    style={{ display: 'none' }}
+                    onChange={async e => {
+                      const f = e.target.files?.[0];
+                      if (!f) return;
+                      const json = await readJsonFile(f);
+                      const next = importBuild(json);
+                      pushHistory(next);
+                      setY(0);
+                      setMenuOpen(false);
+                      e.currentTarget.value = '';
+                    }}
+                  />
+                </label>
+
+                <label className="btn" style={{ cursor: 'pointer' }}>
+                  Import .litematic
+                  <input
+                    type="file"
+                    accept=".litematic,application/octet-stream"
+                    style={{ display: 'none' }}
+                    onChange={async e => {
+                      const f = e.target.files?.[0];
+                      if (!f) return;
+                      const next = await importLitematic(f);
+                      pushHistory(next);
+                      setY(0);
+                      setMenuOpen(false);
+                      e.currentTarget.value = '';
+                    }}
+                  />
+                </label>
+              </div>
+
               <div className="muted">
                 Tip: you can also drag & drop a resource-pack .zip onto the page (desktop).
               </div>
@@ -170,12 +311,27 @@ export function AppShell() {
         )}
       </header>
 
+      {/* Floating quick actions (mobile) */}
+      <div className="floatingStack right" aria-label="History controls">
+        <button className="floatingFab" onClick={undo} disabled={!historyPast.length} title="Undo">↶</button>
+        <button className="floatingFab" onClick={redo} disabled={!historyFuture.length} title="Redo">↷</button>
+      </div>
+
       <main className="main">
         <div className="splitLayout">
           <div className="splitEditor">
             <LayerEditor
               state={editorState}
-              onChange={setEditorState}
+              onChange={next => {
+                // LayerEditor uses React.SetStateAction; normalize into a value then push.
+                if (typeof next === 'function') {
+                  const fn = next as any;
+                  const computed = fn(editorState);
+                  pushHistory(computed);
+                } else {
+                  pushHistory(next as any);
+                }
+              }}
               y={y}
               setY={setY}
               selected={selected}

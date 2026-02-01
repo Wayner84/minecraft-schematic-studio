@@ -34,7 +34,7 @@ export function exportBuildV0(state: LayerEditorState, name: string, heightMax: 
   };
 }
 
-function exportBuildV1(state: LayerEditorState, name: string, heightMax: number): BuildFileV1 {
+export function exportBuildV1(state: LayerEditorState, name: string, heightMax: number): BuildFileV1 {
   const palette: string[] = [];
   const palIndex = new Map<string, number>();
   const blocks: Array<[number, number, number, number]> = [];
@@ -67,7 +67,7 @@ function exportBuildV1(state: LayerEditorState, name: string, heightMax: number)
   };
 }
 
-function importBuild(file: BuildFileAny | any): LayerEditorState {
+export function importBuild(file: BuildFileAny | any): LayerEditorState {
   if (!file || typeof file !== 'object') throw new Error('Invalid file');
 
   // v1 (palette-indexed)
@@ -173,7 +173,7 @@ export function LayerEditor({
         <input type="range" min={0} max={319} value={y} onChange={e => setY(Number(e.target.value))} />
       </div>
 
-      <div className="panel row" style={{ alignItems: 'center', justifyContent: 'space-between' }}>
+      <div className="panel row desktopControls" style={{ alignItems: 'center', justifyContent: 'space-between' }}>
         <div className="row" style={{ gap: 10 }}>
           <button className="btn" onClick={() => setSelected('minecraft:air')}>Eraser</button>
           <div className="muted">Zoom</div>
