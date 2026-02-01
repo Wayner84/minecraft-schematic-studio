@@ -31,7 +31,11 @@ export function EditorCanvas({
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
   // View transform: two-finger pinch zoom + pan
-  const [viewScale, setViewScale] = useState(1);
+  const [viewScale, setViewScale] = useState(() => {
+    // Slightly zoomed in by default so the grid isn't tiny.
+    if (typeof window !== 'undefined' && window.matchMedia?.('(max-width: 980px)').matches) return 1.0;
+    return 1.15;
+  });
   const [offset, setOffset] = useState({ x: 0, y: 0 });
 
   const pointers = useRef(new Map<number, { x: number; y: number }>());

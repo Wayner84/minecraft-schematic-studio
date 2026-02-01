@@ -1,7 +1,6 @@
 ﻿import { useMemo, useState } from 'react';
 import { LayerEditor } from './LayerEditor';
 import { Viewer3D } from './Viewer3D';
-import { FloatingPalette } from './FloatingPalette';
 import { HotbarPalette } from './HotbarPalette';
 import { createEmptyEditorState } from '../model/editorState';
 import { DEFAULT_BLOCK_ID } from '../data/blockPalette';
@@ -15,9 +14,9 @@ export function AppShell() {
   const [y, setY] = useState(0);
   const [selected, setSelected] = useState(DEFAULT_BLOCK_ID);
   const [cellPx, setCellPx] = useState(() => {
-    // Start a touch-friendly zoom by default on mobile.
+    // Start more zoomed-in by default (larger cells) so the grid isn't tiny on load.
     if (typeof window !== 'undefined' && window.matchMedia?.('(max-width: 980px)').matches) return 9;
-    return 6;
+    return 8;
   });
 
   // Texture pack UI state (kept in React so labels update immediately)
@@ -192,9 +191,10 @@ export function AppShell() {
             </div>
           </div>
 
-          {/* Desktop: draggable palette button. Mobile: bottom hotbar. */}
-          <FloatingPalette selected={selected} onSelect={setSelected} />
+          {/* Bottom hotbar palette (desktop + mobile) */}
           <HotbarPalette selected={selected} onSelect={setSelected} />
+          {/* Old draggable palette removed in favour of the bottom hotbar */}
+          {/* <FloatingPalette selected={selected} onSelect={setSelected} /> */}
         </div>
       </main>
     </div>

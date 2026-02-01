@@ -175,7 +175,7 @@ body{margin:0; overflow:hidden;}
 }
 .fabDot{width:12px;height:12px;border-radius:999px;border:1px solid rgba(255,255,255,0.25)}
 
-/* Mobile hotbar */
+/* Bottom hotbar (desktop + mobile) */
 .hotbar{
   position: fixed;
   left: 0;
@@ -184,7 +184,7 @@ body{margin:0; overflow:hidden;}
   z-index: 55;
   padding: 10px;
   padding-bottom: calc(10px + env(safe-area-inset-bottom));
-  display: none;
+  display: flex;
   gap: 10px;
   align-items: center;
   justify-content: space-between;
@@ -195,20 +195,20 @@ body{margin:0; overflow:hidden;}
 .hotbarSlots{
   display: grid;
   grid-auto-flow: column;
-  gap: 6px;
+  gap: 8px;
 }
 .hotbarSlot{
   position: relative;
-  width: 36px;
-  height: 36px;
-  border-radius: 10px;
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
   border: 1px solid rgba(34,48,68,0.95);
   background: rgba(16,23,32,0.75);
   color: var(--text);
   padding: 0;
 }
 .hotbarSlot.active{border-color: rgba(89,193,255,0.75); box-shadow: 0 10px 26px rgba(0,0,0,0.25)}
-.hotbarSwatch{position:absolute; inset:8px; border-radius: 7px; border:1px solid rgba(255,255,255,0.12)}
+.hotbarSwatch{position:absolute; inset:8px; border-radius: 8px; border:1px solid rgba(255,255,255,0.12)}
 .hotbarIndex{position:absolute; right:6px; bottom:4px; font-size: 10px; color: rgba(231,238,247,0.85)}
 .hotbarBtn{
   padding: 9px 10px;
@@ -219,11 +219,15 @@ body{margin:0; overflow:hidden;}
   white-space: nowrap;
 }
 
+/* reserve space so the hotbar doesn't overlap the UI */
+.main{padding-bottom: calc(14px + 64px + env(safe-area-inset-bottom));}
+
+/* keep the old floating palette hidden now that we have a consistent bottom hotbar */
+.fab{display:none}
+
 @media (max-width: 980px){
-  .hotbar{display:flex}
-  .fab{display:none}
-  /* reserve space so the hotbar doesn't overlap the UI */
-  .main{padding-bottom: calc(14px + 60px + env(safe-area-inset-bottom));}
+  .hotbarSlot{width: 36px; height: 36px}
+  .hotbarSlots{gap: 6px}
 }
 
 /* Palette modal */
