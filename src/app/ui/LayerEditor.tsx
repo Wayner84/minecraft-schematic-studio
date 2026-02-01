@@ -128,6 +128,7 @@ export function importBuild(file: BuildFileAny | any): LayerEditorState {
 export function LayerEditor({
   state,
   onChange,
+  onBeginEdit,
   y,
   setY,
   selected,
@@ -137,6 +138,7 @@ export function LayerEditor({
 }: {
   state: LayerEditorState;
   onChange: React.Dispatch<React.SetStateAction<LayerEditorState>>;
+  onBeginEdit?: () => void;
   y: number;
   setY: (y: number) => void;
   selected: string;
@@ -226,7 +228,14 @@ export function LayerEditor({
         </div>
       </div>
 
-      <EditorCanvas state={state} y={y} cellPx={cellPx} selected={selected} onChange={onChange} />
+      <EditorCanvas
+        state={state}
+        y={y}
+        cellPx={cellPx}
+        selected={selected}
+        onChange={onChange}
+        onBeginEdit={onBeginEdit}
+      />
 
       <div className="muted" style={{ marginTop: 8 }}>
         Tip: touch/drag to paint. Export a JSON file to share.

@@ -347,12 +347,21 @@ export function AppShell() {
           <div className="splitEditor">
             <LayerEditor
               state={editorState}
+              onBeginEdit={() => {
+                // Start a single undo step for a continuous paint stroke.
+                setHistoryPast(prev => {
+                  const copy = prev.slice();
+                  copy.push(cloneEditorState(editorState));
+                  while (copy.length > 50) copy.shift();
+                  return copy;
+                });
+                setHistoryFuture([]);
+              }}
               onChange={next => {
-                // LayerEditor uses React.SetStateAction; normalize into a value then push.
+                // LayerEditor uses React.SetStateAction.
+                // Discrete changes (imports, etc) push a history step; continuous painting uses onBeginEdit.
                 if (typeof next === 'function') {
-                  const fn = next as any;
-                  const computed = fn(editorState);
-                  pushHistory(computed);
+                  setEditorState(prev => (next as any)(prev));
                 } else {
                   pushHistory(next as any);
                 }

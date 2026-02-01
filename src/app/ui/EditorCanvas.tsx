@@ -20,12 +20,14 @@ export function EditorCanvas({
   cellPx,
   selected,
   onChange,
+  onBeginEdit,
 }: {
   state: LayerEditorState;
   y: number;
   cellPx: number;
   selected: string;
   onChange: React.Dispatch<React.SetStateAction<LayerEditorState>>;
+  onBeginEdit?: () => void;
 }) {
   const wrapRef = useRef<HTMLDivElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -175,6 +177,8 @@ export function EditorCanvas({
         }
 
         // Single finger => paint
+        // Start a single undo step for the whole stroke.
+        onBeginEdit?.();
         isPaintingRef.current = true;
         const { x, z } = wrapToCell(e.clientX, e.clientY);
         paintAt(x, z);
