@@ -29,7 +29,8 @@ export function AppShell() {
   const [selected, setSelected] = useState(DEFAULT_BLOCK_ID);
   const [cellPx, setCellPx] = useState(() => {
     // Start more zoomed-in by default (larger cells) so the grid isn't tiny on load.
-    if (typeof window !== 'undefined' && window.matchMedia?.('(max-width: 980px)').matches) return 9;
+    // On mobile, aim for a comfortable tap target (~5mm-ish on a typical desktop DPI assumption).
+    if (typeof window !== 'undefined' && window.matchMedia?.('(max-width: 980px)').matches) return 16;
     return 8;
   });
 

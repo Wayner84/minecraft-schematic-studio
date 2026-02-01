@@ -33,7 +33,8 @@ export function EditorCanvas({
   // View transform: two-finger pinch zoom + pan
   const [viewScale, setViewScale] = useState(() => {
     // Slightly zoomed in by default so the grid isn't tiny.
-    if (typeof window !== 'undefined' && window.matchMedia?.('(max-width: 980px)').matches) return 1.0;
+    // On mobile we bias bigger cells for touch, but still allow pinch-zoom to adjust.
+    if (typeof window !== 'undefined' && window.matchMedia?.('(max-width: 980px)').matches) return 1.2;
     return 1.15;
   });
   const [offset, setOffset] = useState({ x: 0, y: 0 });
