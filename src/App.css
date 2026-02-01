@@ -103,14 +103,15 @@ body{margin:0; overflow:hidden;}
 .splitLayout{
   display:grid;
   grid-template-columns: 1fr 1fr;
+  grid-template-areas: "editor viewer";
   gap: 16px;
   align-items: stretch;
   height: 100%;
   width: 100%;
 }
 .splitEditor, .splitViewer{min-height:0; min-width:0}
-.splitEditor{overflow:hidden}
-.splitViewer{overflow:hidden}
+.splitEditor{grid-area: editor; overflow:hidden}
+.splitViewer{grid-area: viewer; overflow:hidden}
 .viewerPanel{height:100%; min-height:0; padding:0}
 
 /* Mobile: editor + viewer stacked */
@@ -131,6 +132,9 @@ body{margin:0; overflow:hidden;}
 
   .splitLayout{
     grid-template-columns: 1fr;
+    grid-template-areas:
+      "viewer"
+      "editor";
     /* give the 3D viewer a bit more room on phones */
     grid-template-rows: minmax(220px, 52svh) minmax(260px, 48svh);
     height: 100%;
