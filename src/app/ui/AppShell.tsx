@@ -23,6 +23,7 @@ export function AppShell() {
   // Texture pack UI state (kept in React so labels update immediately)
   const [atlasStatus, setAtlasStatus] = useState<AtlasStatus>(() => getAtlasStatus());
   const [toast, setToast] = useState<string | null>(null);
+  const [menuOpen, setMenuOpen] = useState(false);
 
   const textureLabel = useMemo(() => {
     if (atlasStatus.source === 'resource-pack') return 'Textures: pack';
@@ -57,8 +58,19 @@ export function AppShell() {
     >
       <header className="topbar">
         <div className="brand">
-          <div className="brandTitle">Minecraft Schematic Studio</div>
-          <div className="brandSub">1.21.x • Litematica • Editor + Viewer (v0)</div>
+          <div>
+            <div className="brandTitle">Minecraft Schematic Studio</div>
+            <div className="brandSub">1.21.x • Litematica • Editor + Viewer (v0)</div>
+          </div>
+
+          <button
+            className="menuBtn"
+            onClick={() => setMenuOpen(true)}
+            aria-label="Open menu"
+            title="Menu"
+          >
+            ☰
+          </button>
         </div>
 
         <nav className="tabs">
@@ -97,7 +109,66 @@ export function AppShell() {
             Reset textures
           </button>
         </nav>
+
         {toast && <div className="toast">{toast}</div>}
+
+        {menuOpen && (
+          <div className="modalOverlay" role="dialog" aria-modal="true" onClick={() => setMenuOpen(false)}>
+            <div className="modal" onClick={e => e.stopPropagation()}>
+              <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
+                <div>
+                  <div className="title">Menu</div>
+                  <div className="muted">Quick settings</div>
+                </div>
+                <button className="btn" onClick={() => setMenuOpen(false)}>
+                  Close
+                </button>
+              </div>
+
+              <div className="row" style={{ gap: 10, flexWrap: 'wrap' }}>
+                <button className={shadows ? 'btn primary' : 'btn'} onClick={() => setShadows(v => !v)}>
+                  {shadows ? 'Shadows: on' : 'Shadows: off'}
+                </button>
+
+                <label className="btn" style={{ cursor: 'pointer' }}>
+                  {textureLabel} (load)
+                  <input
+                    type="file"
+                    accept=".zip,application/zip"
+                    style={{ display: 'none' }}
+                    onChange={async e => {
+                      const f = e.target.files?.[0];
+                      if (!f) return;
+                      const st = await loadResourcePackZip(f);
+                      setAtlasStatus(st);
+                      setToast(`Loaded pack: ${f.name}`);
+                      setTimeout(() => setToast(null), 2500);
+                      e.currentTarget.value = '';
+                      setMenuOpen(false);
+                    }}
+                  />
+                </label>
+
+                <button
+                  className="btn"
+                  onClick={() => {
+                    const st = resetAtlasToProcedural();
+                    setAtlasStatus(st);
+                    setToast('Reset to demo textures');
+                    setTimeout(() => setToast(null), 2000);
+                    setMenuOpen(false);
+                  }}
+                >
+                  Reset textures
+                </button>
+              </div>
+
+              <div className="muted">
+                Tip: you can also drag & drop a resource-pack .zip onto the page (desktop).
+              </div>
+            </div>
+          </div>
+        )}
       </header>
 
       <main className="main">
