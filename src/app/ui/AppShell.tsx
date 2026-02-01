@@ -312,6 +312,30 @@ export function AppShell() {
       </header>
 
       {/* Floating quick actions (mobile) */}
+      <div className="floatingStack left" aria-label="Layer controls">
+        <div className="floatingCard">
+          <div className="floatingTitle">Y</div>
+          <div className="floatingValue">{y}</div>
+          <button className="floatingFab" onClick={() => setY(Math.max(0, y - 1))} title="Layer -1">
+            −
+          </button>
+          <div className="floatingSliderWrap">
+            <input
+              className="floatingSlider"
+              type="range"
+              min={0}
+              max={319}
+              value={y}
+              onChange={e => setY(Number(e.target.value))}
+              aria-label="Layer Y"
+            />
+          </div>
+          <button className="floatingFab" onClick={() => setY(Math.min(319, y + 1))} title="Layer +1">
+            +
+          </button>
+        </div>
+      </div>
+
       <div className="floatingStack right" aria-label="History controls">
         <button className="floatingFab" onClick={undo} disabled={!historyPast.length} title="Undo">↶</button>
         <button className="floatingFab" onClick={redo} disabled={!historyFuture.length} title="Redo">↷</button>

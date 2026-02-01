@@ -159,7 +159,7 @@ export function LayerEditor({
 
   return (
     <div className="editorPane">
-      <div className="panel">
+      <div className="panel desktopControls">
         <div className="row" style={{ justifyContent: 'space-between' }}>
           <div>
             <div className="title">Layer</div>
