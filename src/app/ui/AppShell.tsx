@@ -1,4 +1,4 @@
-﻿import { useMemo, useState } from 'react';
+﻿import { useEffect, useMemo, useState } from 'react';
 import { LayerEditor, exportBuildV1, importBuild } from './LayerEditor';
 import { Viewer3D } from './Viewer3D';
 import { HotbarPalette } from './HotbarPalette';
@@ -86,6 +86,30 @@ export function AppShell() {
       return copy;
     });
   }
+
+  useEffect(() => {
+    function onKeyDown(e: KeyboardEvent) {
+      const t = e.target as HTMLElement | null;
+      const tag = t?.tagName?.toLowerCase();
+      if (tag === 'input' || tag === 'textarea' || (t as any)?.isContentEditable) return;
+
+      const mod = e.ctrlKey || e.metaKey;
+      if (!mod) return;
+
+      const k = e.key.toLowerCase();
+      if (k === 'z') {
+        e.preventDefault();
+        if (e.shiftKey) redo();
+        else undo();
+      } else if (k === 'y') {
+        e.preventDefault();
+        redo();
+      }
+    }
+
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [historyPast.length, historyFuture.length, editorState]);
 
   return (
     <div
